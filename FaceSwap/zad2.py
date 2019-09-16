@@ -19,7 +19,7 @@ print "Press R to start recording to a video file"
 
 #loading the keypoint detection model, the image and the 3D model
 predictor_path = "../shape_predictor_68_face_landmarks.dat"
-image_name = "../data/jolie.jpg"
+image_name = "../data/anant.jpg"
 #the smaller this value gets the faster the detection will work
 #if it is too small, the user's face might not be detected
 maxImageSizeForDetection = 320
@@ -33,9 +33,25 @@ projectionModel = models.OrthographicProjectionBlendshapes(blendshapes.shape[0])
 modelParams = None
 lockedTranslation = False
 drawOverlay = False
-cap = cv2.VideoCapture(0)
-writer = None
+cap = cv2.VideoCapture("../data/video.mp4")
+
+# Check if camera opened successfully
+if (cap.isOpened()== False): 
+  print("Error opening video stream or file")
+
 cameraImg = cap.read()[1]
+
+writer = None
+if writer is None:
+	print "Starting video writer"
+	writer = cv2.VideoWriter("../anantout.avi", cv2.VideoWriter_fourcc('X', 'V', 'I', 'D'), 25,(cameraImg.shape[1], cameraImg.shape[0]))
+	if writer.isOpened():
+		print "Writer succesfully opened"
+	else:
+                writer = None
+                print "Writer opening failed"
+
+
 
 textureImg = cv2.imread(image_name)
 textureCoords = utils.getFaceTextureCoords(textureImg, mean3DShape, blendshapes, idxs2D, idxs3D, detector, predictor)
@@ -78,17 +94,7 @@ while True:
         break
     if key == ord('t'):
         drawOverlay = not drawOverlay
-    if key == ord('r'):
-        if writer is None:
-            print "Starting video writer"
-            writer = cv2.VideoWriter("../out.avi", cv2.cv.CV_FOURCC('X', 'V', 'I', 'D'), 25, (cameraImg.shape[1], cameraImg.shape[0]))
 
-            if writer.isOpened():
-                print "Writer succesfully opened"
-            else:
-                writer = None
-                print "Writer opening failed"
-        else:
-            print "Stopping video writer"
-            writer.release()
-            writer = None
+print "Stopping video writer"
+writer.release()
+writer = None
