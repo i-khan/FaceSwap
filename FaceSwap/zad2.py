@@ -1,6 +1,7 @@
 import dlib
 import cv2
 import numpy as np
+import sys
 
 import models
 import NonLinearLeastSquares
@@ -19,10 +20,10 @@ print "Press R to start recording to a video file"
 
 #loading the keypoint detection model, the image and the 3D model
 predictor_path = "../shape_predictor_68_face_landmarks.dat"
-image_name = "../data/anant.jpg"
+image_name = "../data/"+sys.argv[1]
 #the smaller this value gets the faster the detection will work
 #if it is too small, the user's face might not be detected
-maxImageSizeForDetection = 320
+maxImageSizeForDetection = 1280
 
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor(predictor_path)
@@ -33,7 +34,9 @@ projectionModel = models.OrthographicProjectionBlendshapes(blendshapes.shape[0])
 modelParams = None
 lockedTranslation = False
 drawOverlay = False
-cap = cv2.VideoCapture("../data/video.mp4")
+cap = cv2.VideoCapture("../data/video3m.mp4")
+
+fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 
 # Check if camera opened successfully
 if (cap.isOpened()== False): 
@@ -44,7 +47,7 @@ cameraImg = cap.read()[1]
 writer = None
 if writer is None:
 	print "Starting video writer"
-	writer = cv2.VideoWriter("../anantout.avi", cv2.VideoWriter_fourcc('X', 'V', 'I', 'D'), 25,(cameraImg.shape[1], cameraImg.shape[0]))
+	writer = cv2.VideoWriter("../"+sys.argv[2]+".mp4", fourcc, 25,(cameraImg.shape[1], cameraImg.shape[0]))
 	if writer.isOpened():
 		print "Writer succesfully opened"
 	else:
@@ -76,7 +79,7 @@ while True:
             #blending of the rendered face with the image
             mask = np.copy(renderedImg[:, :, 0])
             renderedImg = ImageProcessing.colorTransfer(cameraImg, renderedImg, mask)
-            cameraImg = ImageProcessing.blendImages(renderedImg, cameraImg, mask)
+            cameraImg = ImageProcessing.blendImages(renderedImg, cameraImg, mask,0.05)
        
 
             #drawing of the mesh and keypoints
