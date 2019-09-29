@@ -20,11 +20,13 @@ print "Press R to start recording to a video file"
 
 #loading the keypoint detection model, the image and the 3D model
 predictor_path = "../shape_predictor_68_face_landmarks.dat"
+face_cvv_detector_path ="../mmod_human_face_detector.dat"
 image_name = "../data/"+sys.argv[1]
 #the smaller this value gets the faster the detection will work
 #if it is too small, the user's face might not be detected
-maxImageSizeForDetection = 1280
+maxImageSizeForDetection = 960
 
+#detector = dlib.cnn_face_detection_model_v1(face_cvv_detector_path) 
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor(predictor_path)
 mean3DShape, blendshapes, mesh, idxs3D, idxs2D = utils.load3DFaceModel("../candide.npz")
@@ -34,9 +36,9 @@ projectionModel = models.OrthographicProjectionBlendshapes(blendshapes.shape[0])
 modelParams = None
 lockedTranslation = False
 drawOverlay = False
-cap = cv2.VideoCapture("../data/video3m.mp4")
+cap = cv2.VideoCapture("../data/w10videov2.mp4")
 
-fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+fourcc = cv2.VideoWriter_fourcc(*'XVID')
 
 # Check if camera opened successfully
 if (cap.isOpened()== False): 
@@ -47,7 +49,7 @@ cameraImg = cap.read()[1]
 writer = None
 if writer is None:
 	print "Starting video writer"
-	writer = cv2.VideoWriter("../"+sys.argv[2]+".mp4", fourcc, 25,(cameraImg.shape[1], cameraImg.shape[0]))
+	writer = cv2.VideoWriter("../"+sys.argv[2]+".avi", fourcc, 25,(cameraImg.shape[1], cameraImg.shape[0]))
 	if writer.isOpened():
 		print "Writer succesfully opened"
 	else:
@@ -79,7 +81,7 @@ while True:
             #blending of the rendered face with the image
             mask = np.copy(renderedImg[:, :, 0])
             renderedImg = ImageProcessing.colorTransfer(cameraImg, renderedImg, mask)
-            cameraImg = ImageProcessing.blendImages(renderedImg, cameraImg, mask,0.05)
+            cameraImg = ImageProcessing.blendImages(renderedImg, cameraImg, mask,0.35)
        
 
             #drawing of the mesh and keypoints
