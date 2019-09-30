@@ -12,6 +12,9 @@ from drawing import *
 import FaceRendering
 import utils
 
+import os
+import subprocess
+
 print "Press T to draw the keypoints and the 3D model"
 print "Press R to start recording to a video file"
 
@@ -21,7 +24,7 @@ print "Press R to start recording to a video file"
 #loading the keypoint detection model, the image and the 3D model
 predictor_path = "../shape_predictor_68_face_landmarks.dat"
 face_cvv_detector_path ="../mmod_human_face_detector.dat"
-image_name = "../bnl/"+sys.argv[1]
+image_name = "../bnl/images/"+sys.argv[1]
 #the smaller this value gets the faster the detection will work
 #if it is too small, the user's face might not be detected
 maxImageSizeForDetection = 960
@@ -49,7 +52,7 @@ cameraImg = cap.read()[1]
 writer = None
 if writer is None:
 	print "Starting video writer"
-	writer = cv2.VideoWriter("../"+sys.argv[1]+"-out.avi", fourcc, 25,(cameraImg.shape[1], cameraImg.shape[0]))
+	writer = cv2.VideoWriter("../bnl/videos/"+sys.argv[1]+"-out.avi", fourcc, 25,(cameraImg.shape[1], cameraImg.shape[0]))
 	if writer.isOpened():
 		print "Writer succesfully opened"
 	else:
@@ -64,42 +67,51 @@ renderer = FaceRendering.FaceRenderer(cameraImg, textureImg, textureCoords, mesh
 
 while True:
     cameraImg = cap.read()[1]
-    shapes2D = utils.getFaceKeypoints(cameraImg, detector, predictor, maxImageSizeForDetection)
+    try:
+        shapes2D = utils.getFaceKeypoints(cameraImg, detector, predictor, maxImageSizeForDetection)
 
-    if shapes2D is not None:
-        for shape2D in shapes2D:
-            #3D model parameter initialization
-            modelParams = projectionModel.getInitialParameters(mean3DShape[:, idxs3D], shape2D[:, idxs2D])
+        if shapes2D is not None:
+            for shape2D in shapes2D:
+                #3D model parameter initialization
+                modelParams = projectionModel.getInitialParameters(mean3DShape[:, idxs3D], shape2D[:, idxs2D])
 
-            #3D model parameter optimization
-            modelParams = NonLinearLeastSquares.GaussNewton(modelParams, projectionModel.residual, projectionModel.jacobian, ([mean3DShape[:, idxs3D], blendshapes[:, :, idxs3D]], shape2D[:, idxs2D]), verbose=0)
+                #3D model parameter optimization
+                modelParams = NonLinearLeastSquares.GaussNewton(modelParams, projectionModel.residual, projectionModel.jacobian, ([mean3DShape[:, idxs3D], blendshapes[:, :, idxs3D]], shape2D[:, idxs2D]), verbose=0)
 
-            #rendering the model to an image
-            shape3D = utils.getShape3D(mean3DShape, blendshapes, modelParams)
-            renderedImg = renderer.render(shape3D)
+                #rendering the model to an image
+                shape3D = utils.getShape3D(mean3DShape, blendshapes, modelParams)
+                renderedImg = renderer.render(shape3D)
 
-            #blending of the rendered face with the image
-            mask = np.copy(renderedImg[:, :, 0])
-            renderedImg = ImageProcessing.colorTransfer(cameraImg, renderedImg, mask)
-            cameraImg = ImageProcessing.blendImages(renderedImg, cameraImg, mask,0.35)
-       
+                #blending of the rendered face with the image
+                mask = np.copy(renderedImg[:, :, 0])
+                renderedImg = ImageProcessing.colorTransfer(cameraImg, renderedImg, mask)
+                cameraImg = ImageProcessing.blendImages(renderedImg, cameraImg, mask,0.1)
+        
 
-            #drawing of the mesh and keypoints
-            if drawOverlay:
-                drawPoints(cameraImg, shape2D.T)
-                drawProjectedShape(cameraImg, [mean3DShape, blendshapes], projectionModel, mesh, modelParams, lockedTranslation)
+                #drawing of the mesh and keypoints
+                if drawOverlay:
+                    drawPoints(cameraImg, shape2D.T)
+                    drawProjectedShape(cameraImg, [mean3DShape, blendshapes], projectionModel, mesh, modelParams, lockedTranslation)
 
-    if writer is not None:
-        writer.write(cameraImg)
+        if writer is not None:
+            writer.write(cameraImg)
 
-    cv2.imshow('image', cameraImg)
-    key = cv2.waitKey(1)
+        cv2.imshow('image', cameraImg)
+        key = cv2.waitKey(1)
 
-    if key == 27:
+        if key == 27:
+            break
+        if key == ord('t'):
+            drawOverlay = not drawOverlay
+    except:
+        print("An exception occurred") 
         break
-    if key == ord('t'):
-        drawOverlay = not drawOverlay
 
 print "Stopping video writer"
 writer.release()
 writer = None
+
+os.chdir('C://Users/Asus/')
+# ffmpeg -i 1569831566308.jpeg-out.avi -i ../../data/superVideo2.mp4  -map 0:0 -map 1:1 -shortest 1569831566308.jpeg-out.mp4
+
+subprocess.call(["ffmpeg", "-i", "../bnl/videos/"+sys.argv[1]+"-out.avi", "-i ", "../data/"+sys.argv[2]+".mp4", "-map ", "0:0", "-map ", "1:1", "-shortest", "../bnl/videos/"+sys.argv[1]+"-out.mp4" ])
